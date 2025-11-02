@@ -45,12 +45,20 @@ func getLinesChannel(f io.ReadCloser) <-chan string {
 }
 
 func main() {
-	port := 42069
-	address := fmt.Sprintf("127.0.0.1:%d", port)
-	tcpListen, err := net.Listen("tcp", address)
+	listener, err := net.Listen("tcp", ":42069")
 	if err != nil {
 		log.Fatal("error", "error", err)
 	}
-	defer tcpListen.Close()
+	defer listener.Close()
 
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Fatal("error", "error", err)
+		}
+		for line := range getLinesChannel(conn) {
+			fmt.Printf("%s", line)
+		}
+		conn.Close()
+	}
 }
