@@ -13,10 +13,6 @@ type RequestLine struct {
 	Method        string
 }
 
-func (r *RequestLine) ValidHTTP() bool {
-	return r.HttpVersion == "HTTP/1.1"
-}
-
 type Request struct {
 	RequestLine RequestLine
 }
@@ -39,15 +35,17 @@ func parseRequestLine(b string) (*RequestLine, string, error) {
 		return nil, restOfMsg, ErrMalformedRequestLine
 	}
 
+	httpParts := strings.Split(parts[2], "/")
+	if len(httpParts) != 2 || httpParts[0] != "HTTP" || httpParts[1] != "1.1" {
+		return nil, restOfMsg, ErrMalformedRequestLine
+	}
+
 	rl := &RequestLine{
 		Method:        parts[0],
 		RequestTarget: parts[1],
-		HttpVersion:   parts[2],
+		HttpVersion:   httpParts[1],
 	}
 
-	if !rl.ValidHTTP() {
-		return nil, restOfMsg, ErrUnsupportedHTTPVersion
-	}
 	return rl, restOfMsg, nil
 }
 
@@ -63,6 +61,9 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 
 	str := string(data)
 	rl, _, err := parseRequestLine(str)
+	if err != nil {
+		return nil, err
+	}
 
 	return &Request{
 		RequestLine: *rl,
